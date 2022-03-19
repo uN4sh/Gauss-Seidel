@@ -19,8 +19,7 @@ typedef struct node {
 typedef struct sparse_matrix {
     int size;
     int edges;
-    node **lists;
-    // double **mat; 
+    node **lists; 
 } sparse_matrix;
 
 typedef struct vector {
@@ -89,22 +88,36 @@ matrix read_full_matrix(const char *path)  {
 }
 
 
-void printList(node *head) {
+void print_list(node *head) {
    node *ptr = head;
    
-   printf("[ ");
-   while(ptr != NULL) {
-      printf("(%d,%d,%lf) -> ",ptr->row,ptr->col,ptr->val);
-      ptr = ptr->next;
-   }
-   printf(" ]\n");
+    printf("[ ");
+    while(ptr != NULL) {
+        printf("(%d,%d,%lf) -> ",ptr->row,ptr->col,ptr->val);
+        ptr = ptr->next;
+    }
+    printf(" ]\n");
 }
 
-void insert_first(node *new, node *head) {
-   //point it to old first node
-   new->next = head;
-   //point first to new first node
-   head = new;
+void free_list(node *head)  {
+    struct node* tmp;
+
+    while (head != NULL)  {
+        tmp = head;
+        head = head->next;
+        free(tmp);
+    }
+
+}
+
+void insert_first(int row, int col, double val, node **head) {
+    node *new = (node*) malloc(sizeof(node));
+    new->row = row;
+    new->col = col;
+    new->val = val;
+    
+    new->next = *head;
+    *head = new;
 }
 
 sparse_matrix read_sparse_matrix(const char *path)  {
@@ -122,14 +135,13 @@ sparse_matrix read_sparse_matrix(const char *path)  {
     printf("\n%d vertex and %d edges\n\n", P.size, P.edges);
 
     // Format: ind_ligne deg_ligne ind_col val_col ind_col val_col ...
-    int lineNbr = -1;
-    int lineDeg = -1;
+    int row, col, deg;
+    double val;
     char *line;
     size_t len = 0;
     size_t read;
-    
     char *strToken;
-    int flip;
+    int flip; // If flip: read index, else: read value
 
     // Création des têtes de liste pour chaque colonne de la matrice
     P.lists = malloc(P.size * sizeof(node*));
@@ -137,45 +149,30 @@ sparse_matrix read_sparse_matrix(const char *path)  {
         P.lists[i] = NULL; 
     }
 
-    node *new = (node*) malloc(sizeof(node));
     while ((read = getline(&line, &len, fp)) != -1)  {
         printf("\n%s", line);
         strToken = strtok (line, " ");
-        lineNbr = atoi(strToken);
+        row = atoi(strToken);
         strToken = strtok (NULL, " ");
-        lineDeg = atoi(strToken);
+        deg = atoi(strToken);
         
-        printf ("Ligne: %d, degré: %d\n", lineNbr, lineDeg);
+        printf ("Ligne: %d, degré: %d\n", row, deg);
         flip = 1;
         while ( (strToken = strtok ( NULL, " " )) != NULL ) {
-            new->row = lineNbr;
-            if (flip) {  // Indice // printf("Indice: %s\n", strToken);
-                new->col = atoi(strToken);
-            }
-            else { // Valeur // printf("Valeur: %s\n", strToken);
-                new->val = strtod(strToken, NULL);
-                print_node(*new);
-                // Insertion in linked list
-                // ToDo: insert_first(new, P.lists[new->col-1]);
-                // new->next = P.lists[new->col-1];
-                // P.lists[new->col-1] = new;
+            if (flip)
+                col = atoi(strToken);
+            else {
+                val = strtod(strToken, NULL);
+                insert_first(row, col, val, &P.lists[col-1]);
             }
             flip = 1 - flip;
         }
-        
     }
 
     fclose(fp);
     if (line)
         free(line);
-
-    // ToDo: print les listes 
-    for (size_t i = 0; i < P.size; i++)  {
-        printf("\n> Colonne %ld: ", i+1);
-        printList(P.lists[i]);
-    }
     
-
     return P;
 }
 
@@ -262,9 +259,7 @@ vector pows_algorithm(const char* path) {
 }
 
 
-
-int main(int argc, char const *argv[]) {
-    
+int main(int argc, char const *argv[])  {
     if (argc < 3) {
         printf("Syntax: ./lecteur mode nom_fichier\n");
         return -1;
@@ -275,7 +270,18 @@ int main(int argc, char const *argv[]) {
         print_vector("res", npi);
     }
     else if (!strcmp(argv[1], "sparse")) {
-        read_sparse_matrix(argv[2]);
+        sparse_matrix P;
+        P = read_sparse_matrix(argv[2]);
+        
+        // Affichage des listes
+        for (size_t i = 0; i < P.size; i++)  {
+            printf("\n> Colonne %ld: ", i+1);
+            print_list(P.lists[i]);
+        }
+
+        for (size_t i = 0; i < P.size; i++)
+            free_list(P.lists[i]);
+        free(P.lists);
     }
     else {
         printf("Syntax: ./lecteur mode nom_fichier\n");

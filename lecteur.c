@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #define epsilon 1e-6
 
@@ -9,6 +8,20 @@ typedef struct matrix {
     int size;
     double **mat; 
 } matrix;
+
+typedef struct node {
+   int row;
+   int col;
+   double val;
+   struct node *next;
+} node;
+
+typedef struct sparse_matrix {
+    int size;
+    int edges;
+    node **lists;
+    // double **mat; 
+} sparse_matrix;
 
 typedef struct vector {
     int size;
@@ -18,6 +31,8 @@ typedef struct vector {
 void print_vector(char *name, vector v);
 void print_matrix(matrix P);
 matrix read_full_matrix(const char *path);
+sparse_matrix read_sparse_matrix(const char *path);
+
 void matrix_vector_product(vector *res, vector v, matrix P);
 double calculate_norm(vector v);
 vector pows_algorithm(const char* path);
@@ -27,7 +42,7 @@ void print_vector(char *name, vector v)  {
     printf("\n");
     printf("%s = [ ", name);
     for (size_t i = 0; i < v.size; i++)  {
-        printf("%.7lf ", v.vect[i]);
+        printf("%lf ", v.vect[i]);
     }
     printf("]\n");
 }
@@ -40,6 +55,10 @@ void print_matrix(matrix P)  {
         }
         printf("\n");
     }
+}
+
+void print_node(node n)  {
+    printf("Node:\n Row: %d\n Col: %d\n val: %lf\n", n.row, n.col, n.val);
 }
 
 matrix read_full_matrix(const char *path)  {
@@ -69,8 +88,95 @@ matrix read_full_matrix(const char *path)  {
     return P;
 }
 
-matrix read_sparse_matrix(const char *path)  {
 
+void printList(node *head) {
+   node *ptr = head;
+   
+   printf("[ ");
+   while(ptr != NULL) {
+      printf("(%d,%d,%lf) -> ",ptr->row,ptr->col,ptr->val);
+      ptr = ptr->next;
+   }
+   printf(" ]\n");
+}
+
+void insert_first(node *new, node *head) {
+   //point it to old first node
+   new->next = head;
+   //point first to new first node
+   head = new;
+}
+
+sparse_matrix read_sparse_matrix(const char *path)  {
+    FILE* fp;
+    fp = fopen(path, "r");
+ 
+    if (NULL == fp)  {
+        printf("file can't be opened \n");
+        exit(1);
+    }
+ 
+    sparse_matrix P;
+    fscanf(fp, "%d\n", &P.size);
+    fscanf(fp, "%d\n", &P.edges);
+    printf("\n%d vertex and %d edges\n\n", P.size, P.edges);
+
+    // Format: ind_ligne deg_ligne ind_col val_col ind_col val_col ...
+    int lineNbr = -1;
+    int lineDeg = -1;
+    char *line;
+    size_t len = 0;
+    size_t read;
+    
+    char *strToken;
+    int flip;
+
+    // Création des têtes de liste pour chaque colonne de la matrice
+    P.lists = malloc(P.size * sizeof(node*));
+    for (size_t i = 0; i < P.size; i++)  {
+        P.lists[i] = NULL; 
+    }
+
+    node *new = (node*) malloc(sizeof(node));
+    while ((read = getline(&line, &len, fp)) != -1)  {
+        printf("\n%s", line);
+        strToken = strtok (line, " ");
+        lineNbr = atoi(strToken);
+        strToken = strtok (NULL, " ");
+        lineDeg = atoi(strToken);
+        
+        printf ("Ligne: %d, degré: %d\n", lineNbr, lineDeg);
+        flip = 1;
+        while ( (strToken = strtok ( NULL, " " )) != NULL ) {
+            new->row = lineNbr;
+            if (flip) {  // Indice // printf("Indice: %s\n", strToken);
+                new->col = atoi(strToken);
+            }
+            else { // Valeur // printf("Valeur: %s\n", strToken);
+                new->val = strtod(strToken, NULL);
+                print_node(*new);
+                // Insertion in linked list
+                // ToDo: insert_first(new, P.lists[new->col-1]);
+                // new->next = P.lists[new->col-1];
+                // P.lists[new->col-1] = new;
+            }
+            flip = 1 - flip;
+        }
+        
+    }
+
+    fclose(fp);
+    if (line)
+        free(line);
+
+    // ToDo: print les listes 
+    for (size_t i = 0; i < P.size; i++)  {
+        printf("\n> Colonne %ld: ", i+1);
+        printList(P.lists[i]);
+    }
+    
+
+    return P;
 }
 
 void matrix_vector_product(vector *res, vector v, matrix P)  {
@@ -159,13 +265,22 @@ vector pows_algorithm(const char* path) {
 
 int main(int argc, char const *argv[]) {
     
-    if (argc < 2) {
-        printf("Syntax: ./lecteur nom_fichier\n");
+    if (argc < 3) {
+        printf("Syntax: ./lecteur mode nom_fichier\n");
         return -1;
     }
 
-    vector npi = pows_algorithm(argv[1]);  
-    print_vector("res", npi);
+    if (!strcmp(argv[1], "full")) {
+        vector npi = pows_algorithm(argv[2]);  
+        print_vector("res", npi);
+    }
+    else if (!strcmp(argv[1], "sparse")) {
+        read_sparse_matrix(argv[2]);
+    }
+    else {
+        printf("Syntax: ./lecteur mode nom_fichier\n");
+        return -1;
+    }
 
     // ToDo : modifier l'algorithme pour matrices creuses
 

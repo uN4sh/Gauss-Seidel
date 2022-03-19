@@ -12,7 +12,7 @@ sparse_matrix: compil
 
 
 debug: compil
-	valgrind ./pows sparse sparse_matrix.txt
+	valgrind --leak-check=full ./pows all full_matrix.txt sparse_matrix.txt
 
 compil: lecteur.o 
 	$(CC) -o pows lecteur.o linked_list_manager.h

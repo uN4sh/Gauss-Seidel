@@ -4,12 +4,18 @@
 #include "linked_list_manager.h"
 
 #define epsilon 1e-6
+#define PRINT_ON_ERR(s)  { fprintf(stderr, "ERR -- %s\n", s); exit(1); }
+
+
+typedef struct vector {
+    int size;
+    double *vect; 
+} vector;
 
 typedef struct matrix {
     int size;
     double **mat; 
 } matrix;
-
 
 typedef struct sparse_matrix {
     int size;
@@ -17,21 +23,21 @@ typedef struct sparse_matrix {
     node **lists; 
 } sparse_matrix;
 
-typedef struct vector {
-    int size;
-    double *vect; 
-} vector;
-
 void print_vector(char *name, vector v);
 void print_full_matrix(matrix P);
 void print_sparse_matrix(sparse_matrix P);
+
 matrix read_full_matrix(const char *path);
 sparse_matrix read_sparse_matrix(const char *path);
 
 void full_matrix_vector_product(vector *res, vector v, matrix P);
 void sparse_matrix_vector_product(vector *res, vector v, sparse_matrix P);
+
 double calculate_norm(vector v);
-vector pows_algorithm(const char* path);
+vector initialize_opi(int size);
+
+vector full_pows_algorithm(const char* path);
+vector sparse_pows_algorithm(const char* path);
 
 
 void print_vector(char *name, vector v)  {
@@ -44,12 +50,13 @@ void print_vector(char *name, vector v)  {
 }
 
 void print_full_matrix(matrix P)  {
-    printf("Size: %dx%d\n", P.size, P.size);
+    printf("%dx%d matrix\n", P.size, P.size);
     for (size_t i = 0; i < P.size; i++)  {
+        printf(" [ ");
         for (size_t j = 0; j < P.size; j++)  {
             printf("%.2lf ", P.mat[i][j]);
         }
-        printf("\n");
+        printf("]\n");
     }
 }
 
@@ -61,19 +68,12 @@ void print_sparse_matrix(sparse_matrix P)  {
     }
 }
 
-void print_node(node n)  {
-    printf("Node:\n Row: %d\n Col: %d\n val: %lf\n", n.row, n.col, n.val);
-}
-
 matrix read_full_matrix(const char *path)  {
     FILE* ptr;
     ptr = fopen(path, "r");
  
-    if (NULL == ptr)  {
-        printf("file can't be opened \n");
-        exit(1);
-    }
- 
+    if (NULL == ptr)    PRINT_ON_ERR("File can't be opened");
+
     matrix P;
     fscanf(ptr, "%d", &P.size);
 
@@ -92,21 +92,16 @@ matrix read_full_matrix(const char *path)  {
     return P;
 }
 
-
 sparse_matrix read_sparse_matrix(const char *path)  {
     FILE* fp;
     fp = fopen(path, "r");
  
-    if (NULL == fp)  {
-        printf("file can't be opened \n");
-        exit(1);
-    }
+    if (NULL == fp)     PRINT_ON_ERR("File can't be opened");
  
     sparse_matrix P;
     fscanf(fp, "%d\n", &P.size);
     fscanf(fp, "%d\n", &P.edges);
     
-
     // Format: ind_ligne deg_ligne ind_col val_col ind_col val_col ...
     int row, col, deg;
     double val;
@@ -149,26 +144,22 @@ sparse_matrix read_sparse_matrix(const char *path)  {
 }
 
 void full_matrix_vector_product(vector *res, vector v, matrix P)  {
-    // ToDo: ajouter des checks de sizes ?
+    if (v.size != P.size)   PRINT_ON_ERR("Matrix and vector sizes should be equal for a product");
 
     for (size_t i = 0; i < res->size; i++)  {
         res->vect[i] = 0;
-        // printf("[%ld] = ", i);
         for (size_t j = 0; j < res->size; j++)  {
-            // printf("%lf * %lf + ", vect[j], P.mat[j][i]);
             res->vect[i] += v.vect[j] * P.mat[j][i];
         }
-        // printf("\n");
     }
 }
 
 void sparse_matrix_vector_product(vector *res, vector v, sparse_matrix P)  {
-    node *ptr = (node*) malloc(sizeof(node));
-    for (size_t i = 0; i < res->size; i++)  {
-        res->vect[i] = 0;
-    }
-    
+    if (v.size != P.size)   PRINT_ON_ERR("Matrix and vector sizes should be equal for a product");
+
+    node *ptr = NULL;
     for (size_t i = 0; i < P.size; i++)  {
+        res->vect[i] = 0;
         ptr = P.lists[i];
         while (ptr != NULL)  {
             res->vect[i] += v.vect[ptr->row-1] * ptr->val;
@@ -189,7 +180,27 @@ double calculate_norm(vector v)  {
     return norm;
 }
 
-vector pows_algorithm(const char* path) {
+vector initialize_opi(int size)  {
+    // Vecteur e plein de 1
+    vector e;
+    e.size = size;
+    e.vect = malloc (e.size * sizeof(double));
+    for (size_t i = 0; i < e.size; i++)  {
+        e.vect[i] = 1;
+    }
+    
+    // Initialisation (opi = e/N)
+    vector opi;
+    opi.size = size;
+    opi.vect =  malloc (opi.size * sizeof(double));
+    for (size_t i = 0; i < opi.size; i++)  {
+        opi.vect[i] = (double) e.vect[i] / size;
+    }
+    free(e.vect);
+    return opi;
+}
+
+vector full_pows_algorithm(const char* path) {
     printf("\n\033[01;32mPows algorithm on a full matrix\033[m\n");
 
     // Lecture de la matrice pleine 
@@ -197,23 +208,7 @@ vector pows_algorithm(const char* path) {
     P = read_full_matrix(path);
     print_full_matrix(P);
 
-    // Vecteur e plein de 1
-    vector e;
-    e.size = P.size;
-    e.vect = malloc (e.size * sizeof(double));
-    for (size_t i = 0; i < e.size; i++)  {
-        e.vect[i] = 1;
-    }
-    
-    // Initialisation (opi = e/N)
-    vector opi;
-    opi.size = P.size;
-    opi.vect = malloc (opi.size * sizeof(double));
-    for (size_t i = 0; i < opi.size; i++)  {
-        opi.vect[i] = (double) e.vect[i] / P.size;
-    }
-    
-    print_vector("opi", opi);
+    vector opi = initialize_opi(P.size);
     
     // Itérations en do ... while
     vector npi, npi2, sum;
@@ -226,52 +221,38 @@ vector pows_algorithm(const char* path) {
     do {
         it++;
         // Copie de pi-1 dans pi
-        npi.vect = malloc(npi.size * sizeof(double));
         for (size_t i = 0; i < P.size; i++)  {
             npi.vect[i] = npi2.vect[i];
         }
 
         full_matrix_vector_product(&npi2, npi, P); // npi = opi*P
-        // print_vector("npi2", npi2);
-        
+
         // Calcul de npi2 -npi
         for (size_t i = 0; i < sum.size; i++)  {
             sum.vect[i] = npi2.vect[i] - npi.vect[i];
         }
+    } while (calculate_norm(sum) > epsilon);
 
-        // printf("norm: %.7lf\n", calculate_norm(sum));
-        
-    } while ( calculate_norm(sum) > epsilon);
-
+    for (size_t i = 0; i < P.size; i++)
+        free(P.mat[i]);
+    free(P.mat);
+    
     printf("Pows algorithm executed in %d iterations with ε = %f", it, epsilon);
+    print_vector("opi", opi);
+    free(npi.vect);
+    free(sum.vect);
     return npi2;
 }
 
 vector sparse_pows_algorithm(const char* path) {
     printf("\n\033[01;32mPows algorithm on a sparse matrix\033[m\n");
 
-    // Lecture de la matrice pleine 
+    // Lecture de la matrice creuse 
     sparse_matrix P;
     P = read_sparse_matrix(path);
     print_sparse_matrix(P);
 
-    // Vecteur e plein de 1
-    vector e;
-    e.size = P.size;
-    e.vect = malloc (e.size * sizeof(double));
-    for (size_t i = 0; i < e.size; i++)  {
-        e.vect[i] = 1;
-    }
-    
-    // Initialisation (opi = e/N)
-    vector opi;
-    opi.size = P.size;
-    opi.vect = malloc (opi.size * sizeof(double));
-    for (size_t i = 0; i < opi.size; i++)  {
-        opi.vect[i] = (double) e.vect[i] / P.size;
-    }
-    
-    print_vector("opi", opi);
+    vector opi = initialize_opi(P.size);
     
     // Itérations en do ... while
     vector npi, npi2, sum;
@@ -284,7 +265,6 @@ vector sparse_pows_algorithm(const char* path) {
     do {
         it++;
         // Copie de pi-1 dans pi
-        npi.vect = malloc(npi.size * sizeof(double));
         for (size_t i = 0; i < P.size; i++)  {
             npi.vect[i] = npi2.vect[i];
         }
@@ -295,16 +275,16 @@ vector sparse_pows_algorithm(const char* path) {
         for (size_t i = 0; i < sum.size; i++)  {
             sum.vect[i] = npi2.vect[i] - npi.vect[i];
         }
-
-        // printf("norm: %.7lf\n", calculate_norm(sum));
-        
-    } while ( calculate_norm(sum) > epsilon);
+    } while (calculate_norm(sum) > epsilon);
 
     for (size_t i = 0; i < P.size; i++)
         free_list(P.lists[i]);
     free(P.lists);
 
     printf("Pows algorithm executed in %d iterations with ε = %f", it, epsilon);
+    print_vector("opi", opi);
+    free(npi.vect);
+    free(sum.vect);
     return npi2;
 }
 
@@ -316,7 +296,7 @@ int main(int argc, char const *argv[])  {
     }
 
     if (!strcmp(argv[1], "full")) {
-        vector npi = pows_algorithm(argv[2]);  
+        vector npi = full_pows_algorithm(argv[2]);  
         print_vector("res", npi);
     }
     else if (!strcmp(argv[1], "sparse")) {
@@ -324,17 +304,17 @@ int main(int argc, char const *argv[])  {
         print_vector("res", npi);
     }
     else if (!strcmp(argv[1], "all")) {
-        vector npi = pows_algorithm(argv[2]);  
+        vector npi = full_pows_algorithm(argv[2]);  
         print_vector("res_full", npi);
+        free(npi.vect);
         npi = sparse_pows_algorithm(argv[3]);  
         print_vector("res_sparse", npi);
+        free(npi.vect);
     }
     else {
         printf("Syntax: ./lecteur mode nom_fichier\n");
         return -1;
     }
-
-    // ToDo : modifier l'algorithme pour matrices creuses
 
     return 0;
 }

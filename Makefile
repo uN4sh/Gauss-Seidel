@@ -10,6 +10,8 @@ full_matrix: compil
 sparse_matrix: compil
 	./pows sparse sparse_matrix.txt
 
+pagerank: compil
+	./pows pagerank sparse_matrix.txt
 
 debug: compil
 	valgrind --leak-check=full ./pows all full_matrix.txt sparse_matrix.txt

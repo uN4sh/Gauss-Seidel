@@ -1,3 +1,6 @@
+#ifndef __linked_list_h
+#define __linked_list_h
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,31 +11,10 @@ typedef struct node {
    struct node *next;
 } node;
 
-void print_list(node *head) {
-    node *ptr = head;
-    printf("[ ");
-    while(ptr != NULL) {
-        printf("(%d,%d,%lf) ",ptr->row,ptr->col,ptr->val);
-        ptr = ptr->next;
-    }
-    printf("]\n");
-}
+void print_list(node *head);
 
-void free_list(node *head)  {
-    struct node* tmp;
-    while (head != NULL)  {
-        tmp = head;
-        head = head->next;
-        free(tmp);
-    }
-}
+void free_list(node *head);
 
-void insert_first(int row, int col, double val, node **head) {
-    node *new_node = (node*) malloc(sizeof(node));
-    new_node->row = row;
-    new_node->col = col;
-    new_node->val = val;
-    
-    new_node->next = *head;
-    *head = new_node;
-}
+void insert_first(int row, int col, double val, node **head);
+
+#endif

@@ -31,11 +31,11 @@ int main(int argc, char const *argv[])  {
         print_vector("res", npi);
     }
     else if (!strcmp(argv[1], "gauss_seidel")) {
-        vector npi = pagerank_98(argv[2], epsilon, alpha);
-        print_vector("res", npi);
+        pagerank_98(argv[2], epsilon, alpha);
+        // print_vector("res", npi);
 
-        npi = gauss_seidel(argv[2], epsilon, alpha);
-        print_vector("res", npi);
+        gauss_seidel(argv[2], epsilon, alpha);
+        // print_vector("res", npi);
     }
     else {
         printf("Syntax: ./lecteur mode nom_fichier\n");

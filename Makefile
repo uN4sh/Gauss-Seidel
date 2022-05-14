@@ -4,7 +4,8 @@ CFLAGS=-g -Wall
 ### Exécution ###
 
 gauss_seidel: compil
-	./pows gauss_seidel sparse_matrix.txt
+	./pows gauss_seidel resources/wb-cs-stanford.txt
+# sparse_matrix.txt
 
 all_matrices: compil
 	./pows all full_matrix.txt sparse_matrix.txt

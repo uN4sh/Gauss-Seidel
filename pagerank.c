@@ -159,6 +159,9 @@ double scalar_product(vector a, int *b)  {
 
 vector pagerank_98(const char* path, double epsilon, double alpha) {
     printf("\n\033[01;32mPageRank 98: Pows algorithm on a sparse matrix\033[m\n");
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
 
     // Lecture de la matrice creuse 
     sparse_matrix P;
@@ -211,7 +214,10 @@ vector pagerank_98(const char* path, double epsilon, double alpha) {
         free_list(P.lists[i]);
     free(P.lists);
 
-    printf("Pows algorithm executed in %d iterations with ε = %f", it, epsilon);
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+    printf("    Pows algorithm executed in %d iterations and %f seconds with ε = %f", it, cpu_time_used, epsilon);
     free(npi2.vect);
     free(sum.vect);
     return npi;

@@ -1,6 +1,7 @@
 #ifndef __pagerank_h
 #define __pagerank_h
 
+#include <time.h>
 #include "lecteur.h"
 
 double calculate_norm(vector v);

@@ -24,12 +24,12 @@ pagerank: compil
 debug: compil
 	valgrind --leak-check=full ./pows all full_matrix.txt sparse_matrix.txt
 
-compil: pagerank.o lecteur.o main.o linked_list_manager.o
-	$(CC) -o pows main.o pagerank.o lecteur.o linked_list_manager.o
+compil: pagerank.o lecteur.o main.o linked_list_manager.o gauss_seidel.o
+	$(CC) -o pows main.o pagerank.o gauss_seidel.o lecteur.o linked_list_manager.o
 
 ### Compilation des fichiers ###
 
-main.o: main.c lecteur.h pagerank.h
+main.o: main.c lecteur.h pagerank.h gauss_seidel.h
 	$(CC) $(CFLAGS) -c main.c
 
 pagerank.o: pagerank.c pagerank.h lecteur.h linked_list_manager.h

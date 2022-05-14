@@ -1,4 +1,5 @@
 #include "pagerank.h"
+#include "gauss_seidel.h"
 
 int main(int argc, char const *argv[])  {
     if (argc < 3) {
@@ -26,11 +27,14 @@ int main(int argc, char const *argv[])  {
         free(npi.vect);
     }
     else if (!strcmp(argv[1], "pagerank")) {
-        vector npi = pagerank_98(argv[2], alpha, epsilon);
+        vector npi = pagerank_98(argv[2], epsilon, alpha);
         print_vector("res", npi);
     }
     else if (!strcmp(argv[1], "gauss_seidel")) {
-        vector npi = pagerank_98(argv[2], alpha, epsilon);
+        vector npi = pagerank_98(argv[2], epsilon, alpha);
+        print_vector("res", npi);
+
+        npi = gauss_seidel(argv[2], epsilon, alpha);
         print_vector("res", npi);
     }
     else {

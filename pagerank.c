@@ -165,25 +165,20 @@ vector pagerank_98(const char* path, double epsilon, double alpha) {
     P = read_sparse_matrix(path);
     // print_sparse_matrix(P);
     
-    vector opi = initialize_opi(P.size);
+    vector npi = initialize_opi(P.size);
     
     // Itérations en do ... while
-    vector npi, npi2, sum;
-    npi2 = opi;
+    vector npi2, sum;
     npi.size = P.size;
     sum.size = P.size;
-    npi.vect = malloc(npi.size * sizeof(double));
+    npi2.vect = malloc(npi.size * sizeof(double));
     sum.vect = malloc(sum.size * sizeof(double));
     int it = 0;
     do {
         it++;
-        // Copie de pi-1 dans pi
-        for (size_t i = 0; i < P.size; i++)  {
-            npi.vect[i] = npi2.vect[i];
-        }
-
+        
         // vecteur xP (npi)
-        sparse_matrix_vector_product(&npi2, npi, P); // npi = opi*P
+        sparse_matrix_vector_product(&npi2, npi, P); // npi2 = npi*P
 
         // vecteur alpha*xP (alpha*npi)
         for (size_t i = 0; i < P.size; i++)  {
@@ -201,9 +196,14 @@ vector pagerank_98(const char* path, double epsilon, double alpha) {
             npi2.vect[i] = npi2.vect[i] + xf;
         }
         
-        // Calcul de npi2 -npi
+        // Calcul de npi2 - npi
         for (size_t i = 0; i < sum.size; i++)  {
             sum.vect[i] = npi2.vect[i] - npi.vect[i];
+        }
+
+        // Copie de np2 dans npi
+        for (size_t i = 0; i < P.size; i++)  {
+            npi.vect[i] = npi2.vect[i];
         }
     } while (calculate_norm(sum) > epsilon);
 
@@ -212,7 +212,7 @@ vector pagerank_98(const char* path, double epsilon, double alpha) {
     free(P.lists);
 
     printf("Pows algorithm executed in %d iterations with ε = %f", it, epsilon);
-    free(npi.vect);
+    free(npi2.vect);
     free(sum.vect);
-    return npi2;
+    return npi;
 }
